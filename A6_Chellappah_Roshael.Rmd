@@ -1,0 +1,114 @@
+---
+title: "DNA Alignments Assignment"
+author: "Roshael Chellappah (20103016)"
+date: "02/03/2022"
+output: html_document
+---
+
+*GitHub*
+Username: RoshaelC
+Repository Link: https://github.com/RoshaelC/DNAalignment.git 
+
+Purpose of Analysis:
+Odd sequence of non-human DNA found from nanopore sequencing of patient biofluids. Aim to identify the origins of this sequence and potential impact (or lack thereof) of identified sequence on patient. 
+
+Load required packages:
+```{r}
+library(BiocManager)
+library(sangerseqR)
+library(rentrez)
+library(genbankr)
+```
+
+
+# Sequence Analysis
+
+Sequence preparation for analysis:
+```{r}
+UnknownID <- c("ATGTCTGATAATGGACCCCAAAATCAGCGAAATGCACCCCGCATTACGTTTGGTGGACCCTCAGATTCAACTGGCAGTAACCAGAATGGAGAACGCAGTGGGGCGCGATCAAAACAACGTCGGCCCCAAGGTTTACCCAATAATACTGCGTCTTGGTTCACCGCTCTCACTCAACATGGCAAGGAAGACCTTAAATTCCCTCGAGGACAAGGCGTTCCAATTAACACCAATAGCAGTCCAGATGACCAAATTGGCTACTACCGAAGAGCTACCAGACGAATTCGTGGTGGTGACGGTAAAATGAAAGATCTCAGTCCAAGATGGTATTTCTACTACCTAGGAACTGGGCCAGAAGCTGGACTTCCCTATGGTGCTAACAAAGACGGCATCATATGGGTTGCAACTGAGGGAGCCTTGAATACACCAAAAGATCACATTGGCACCCGCAATCCTGCTAACAATGCTGCAATCGTGCTACAACTTCCTCAAGGAACAACATTGCCAAAAGGCTTCTACGCAGAAGGGAGCAGAGGCGGCAGTCAAGCCTCTTCTCGTTCCTCATCACGTAGTCGCAACAGTTCAAGAAATTCAACTCCAGGCAGCAGTAGGGGAACTTCTCCTGCTAGAATGGCTGGCAATGGCGGTGATGCTGCTCTTGCTTTGCTGCTGCTTGACAGATTGAACCAGCTTGAGAGCAAAATGTCTGGTAAAGGCCAACAACAACAAGGCCAAACTGTCACTAAGAAATCTGCTGCTGAGGCTTCTAAGAAGCCTCGGCAAAAACGTACTGCCACTAAAGCATACAATGTAACACAAGCTTTCGGCAGACGTGGTCCAGAACAAACCCAAGGAAATTTTGGGGACCAGGAACTAATCAGACAAGGAACTGATTACAAACATTGGCCGCAAATTGCACAATTTGCCCCCAGCGCTTCAGCGTTCTTCGGAATGTCGCGCATTGGCATGGAAGTCACACCTTCGGGAACGTGGTTGACCTACACAGGTGCCATCAAATTGGATGACAAAGATCCAAATTTCAAAGATCAAGTCATTTTGCTGAATAAGCATATTGACGCATACAAAACATTCCCACCAACAGAGCCTAAAAAGGACAAAAAGAAGAAGGCTGATGAAACTCAAGCCTTACCGCAGAGACAGAAGAAACAGCAAACTGTGACTCTTCTTCCTGCTGCAGATTTGGATGATTTCTCCAAACAATTGCAACAATCCATGAGCAGTGCTGACTCAACTCAGGCCTAA") # turn sequence into an object
+
+class(UnknownID) # check that it is a character
+
+```
+
+Run BLAST search:
+```{r}
+library(annotate)
+
+UnknownBLAST <- blastSequences(UnknownID, as = 'data.frame', hitListSize = 20, timeout = 600) # find related sequences in NCBI's database
+
+```
+# Multiple Alignments
+```{r}
+library(ape)
+
+# make a vector of accession numbers from the BLAST results above and make them into a data.frame object
+
+UnknownHitsDF <- data.frame(ID = UnknownBLAST$Hit_accession, Seq = UnknownBLAST$Hsp_hseq, stringsAsFactors = FALSE)
+```
+
+```{r}
+# read a sample of the sequences from GenBank
+UnknownHitSeq <- read.GenBank(UnknownBLAST$Hit_accession)
+
+# check the species
+attr(UnknownHitSeq, "species")
+```
+
+```{r}
+
+library(dplyr)
+library(Biostrings)
+
+UnknownDNAstring <- UnknownHitsDF$Seq %>% as.character %>% lapply(., paste0, collapse = "") %>% unlist %>% DNAStringSet()
+
+```
+
+```{r}
+# convert to a new object and add index number
+names(UnknownDNAstring)<-paste(1:nrow(UnknownHitsDF),UnknownHitsDF$ID,sep="_")
+
+# run muscle() on DNAStringSet object
+library(muscle)
+UnknownAlign <- muscle::muscle(stringset = UnknownDNAstring, quite = T)
+```
+
+# Phylogenetic Tree Creation
+```{r}
+SeqLen <- as.numeric(lapply(UnknownDNAstring,length))
+library(ggplot2)
+qplot(SeqLen) + theme_bw() # results show that all sequences seem to have 100% similarity
+```
+
+
+```{r}
+KeepSeq <- SeqLen > 1000
+
+UnknownSubset <- UnknownDNAstring[KeepSeq,]
+UnknownSubAlign <- muscle(UnknownSubset, quiet = T)
+
+UnknownSubAlignBin <- as.DNAbin(UnknownSubAlign)
+
+UnknownDM <- dist.dna(UnknownSubAlignBin, model = "K80")
+
+
+UnknownDMmat <- as.matrix(UnknownDM)
+
+library(reshape2)
+PDat <- melt(UnknownDMmat)
+View(PDat)
+```
+
+```{r}
+UnknownTree <- nj(UnknownDM)
+
+library(ggtree)
+
+ggtree(UnknownTree)
+
+```
+
+# Report
+The unknown sequence that was identified from the patient is from the Coronavirus pathogen and IS something of concern, especially during current times as it is possible this individual may be positive for CoVID-19. As shown below, the Coronavirus pathogen has a detrimental long-term impacts on the human body, and early diagnosis and treatment of the virus is extremely beneficial.
+
+![Impact of CoVID-19 pathogen on human body](https://media.springernature.com/lw685/springer-static/image/art%3A10.1038%2Fs41591-020-0968-3/MediaObjects/41591_2020_968_Fig2_HTML.png?as=webp)
