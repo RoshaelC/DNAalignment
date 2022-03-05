@@ -109,6 +109,6 @@ ggtree(UnknownTree)
 ```
 
 # Report
-The unknown sequence that was identified from the patient is from the Coronavirus pathogen and IS something of concern, especially during current times as it is possible this individual may be positive for CoVID-19. As shown below, the Coronavirus pathogen has a detrimental long-term impacts on the human body, and early diagnosis and treatment of the virus is extremely beneficial.
+The unknown sequence that was identified from the patient is from the Coronavirus pathogen and IS something of concern, especially during current times as it is possible this individual may be positive for CoVID-19. As shown below, the Coronavirus pathogen has a detrimental long-term impacts on the human body, and early diagnosis and treatment of the virus is extremely beneficial. I am unsure why the phylogenetic tree is outputted as a single line; however, this may be due to the 100% similarity found between Coronavirus sequence data used to create the tree. 
 
 ![Impact of CoVID-19 pathogen on human body](https://media.springernature.com/lw685/springer-static/image/art%3A10.1038%2Fs41591-020-0968-3/MediaObjects/41591_2020_968_Fig2_HTML.png?as=webp)
